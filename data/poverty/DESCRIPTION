@@ -1,0 +1,7 @@
+Source: http://dataferrett.census.gov/
+Dataset: Survey of Income and Program Participation
+Panels: 2004, 2008
+2004 Waves: 1-12
+2008 Waves: 1-11
+
+Variables: WHFNWGT,TFTOTINC,RFPOV,SSUSEQ,SROTATON,RHCALMN,RHCALYR,GVARSTR,GHLFSAM,GRGC,SSUID
