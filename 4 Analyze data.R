@@ -63,6 +63,10 @@ pr.predict <- predict(pr.fit, pr.test)
 results[1,1] <- rmse(pr.fit$fit, pr.train$rate)
 results[1,2] <- rmse(pr.predict, pr.test$rate) # This is pretty high: not a good predictive model
 
+# FIT WITH ALL AND SAVE
+pr.fit <- lm(rate ~ . , pr.possible)
+save(pr.fit, file="../models/m.ar.full.rda")
+
 rm(pr.fit, pr.predict)
 
 
@@ -104,6 +108,12 @@ lines(lowess(pr.predict ~ pr.test$finalDate,f=.5), col = 3) # Not a very good fi
 results[2,1] <- rmse(pr.stepped1$fit, pr.train$rate)
 results[2,2] <- rmse(pr.predict, pr.test$rate) # This is pretty high, as expected
 
+# FIT WITH ALL AND SAVE
+pr.fit <- lm(rate ~ . , pr.possible)
+pr.stepped1 <- step(pr.fit)
+save(pr.fit, file="../models/m.ar.stepped.rda")
+
+
 rm(c, max, n, pr.fit, pr.predict, pr.stepped1, pr.stepped2, pr.stepped3)
 
 
@@ -142,30 +152,43 @@ points(pr.test$finalDate, pr.predict, col=3, pch=3)
 results[3,1] <- rmse(pr.fit.nr$fit, pr.train$rate)
 results[3,2] <- rmse(pr.predict, pr.test$rate) # Now we're getting somewhere
 
+# FIT WITH ALL AND SAVE
+pr.fit <- lm(formula(pr.fit.nr), pr.possible)
+save(pr.fit, file="../models/m.ar.manual.rda")
+
 
 #######################################
 # Fit tree                            #
 #######################################
 
-pr.tr <- rpart(rate ~ ., pr.train,cp=.000000001)
+pr.tr <- rpart(rate ~ ., pr.train[,-60],cp=.000000001)
 plotcp(pr.tr)
 printcp(pr.tr)
 
-pr.tr1 <- prune(pr.tr, cp=.0001)
+pr.tr1 <- prune(pr.tr, cp=.02)
 pr.tr1
 
 
-train.hat <- predict(pr.tr1, pr.train)
-results[4,1] <- rmse(train.hat, pr.train$rate)
+train.hat <- predict(pr.tr1, pr.train[,-60])
+results[4,1] <- rmse(train.hat, pr.train[,-60]$rate)
 
-test.hat <- predict(pr.tr1, pr.test)
-results[4,2] <- rmse(test.hat, pr.test$rate)
+test.hat <- predict(pr.tr1, pr.test[,-60])
+results[4,2] <- rmse(test.hat, pr.test[,-60]$rate)
 
+save(pr.tr1, file="../models/m.rp.rda")
 
 windows()
 par(mar=c(0,0,0,0))
 rpart.plot(pr.tr1, main="Tree structure", split.col="gray40", branch.col="dodgerblue4", box.col="white",
            border.col="dodgerblue4", under.col="blue", nn.box.col="white", varlen=21)
+
+
+# FIT WITH ALL AND SAVE
+pr.tr <- rpart(rate ~ ., pr.possible[,-60],cp=.000000001)
+pr.tr1 <- prune(pr.tr, cp=.02)
+save(pr.tr1, file="../models/m.tree.rda")
+
+rm(pr.fit, formula, pr.fit.nr, pr.predict, pr.train.predict, pvals)
 
 rm(pr.tr, pr.tr1, test.hat, train.hat, n)
 
@@ -205,8 +228,15 @@ test.ct.3 <- sweep(pr.test[,c(-60, -59)], 2, tr.pc$center)
 test.pc.3 <- as.matrix(test.ct.3)%*%tr.pc$rot[,1:20]
 r.test.3 <- rmse (cbind(1,test.pc.3)%*%m.3$coef, pr.test$rate)
 
+
 results[5,1] <- r.train.2
 results[5,2] <- r.test.2
+
+tr.pc <- prcomp(pr.possible[,c(-60, -59)])
+m.2 <- lm(rate ~ tr.pc$x[,1:4], pr.possible)
+
+save(tr.pc, file="../models/m.pc.tr.rda")
+save(m.2, file="../models/m.pc.rda.rda")
 
 rm(test.ct, test.ct.2, test.ct.3, test.pc, test.pc.2, test.pc.3, m.1, m.2, m.3, r.test.1, r.test.2, r.test.3, r.train.1, r.train.2, r.train.3, tr.pc)
 
@@ -239,7 +269,9 @@ for(j in 1:length(perms)) {
   formulas[j,1] <- form
   rm(form)
   if(round(j/1000) == j/1000) { print(j) } # To keep track
-} rm(perms, c, j, k)
+} 
+
+rm(perms, c, j, k)
 
 
 # Risk is that with so many combinations, a particular combination may perfectly fit the data
@@ -289,12 +321,20 @@ results.selective <- t(results.selective)
 rownames(results.selective) <- NULL
 colnames(results.selective) <- c("Formula", "Train RMSE", "Test RMSE")
 
+save.csv(results.selective, file="../results/results.selective.csv")
+
 # View best
 results.selective <- results.selective[order(results.selective[,3]),]
 # Select best
 results[6,1] <- results.selective[which.min(results.selective[,3]),2]
 results[6,2] <- results.selective[which.min(results.selective[,3]),3]
 rownames(results)[6] <- paste("Selected AR: ", results.selective[which.min(results.selective[,3]),1])
+
+
+# FIT WITH ALL AND SAVE
+pr.fit <- lm(rate ~ . , pr.possible)
+pr.stepped1 <- step(pr.fit)
+save(pr.fit, file="../models/m.ar.stepped.rda")
 
 #######################################
 # Select best overall model           #

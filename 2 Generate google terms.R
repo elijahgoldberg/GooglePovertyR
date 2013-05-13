@@ -22,7 +22,7 @@ setwd(dir)
 pr <- read.csv("months.all.csv", header = F)
 
 colnames(pr) <- c("date")
-setwd("./terms/US") # Directory with US terms
+setwd("./terms/original") # Directory with US terms
 
 # Get list of all terms we're using as predictors
 f <- list.files(".")
